@@ -2,7 +2,6 @@ import ExcelJS from 'exceljs';
 import { store, BENCHMARK } from '../store';
 
 export async function exportFacultyReport(facultyId: string, cycleId?: string): Promise<void> {
-
   const faculty = store.getFacultyById(facultyId);
   if (!faculty) return;
 
@@ -15,12 +14,8 @@ export async function exportFacultyReport(facultyId: string, cycleId?: string): 
   const subQuestions = store.getSubQuestions();
 
   try {
-    if (!faculty) {
-      throw new Error('Faculty not found');
-    }
-    if (!metrics || metrics.totalSubmissions === 0) {
-      throw new Error('No evaluation data available for this period');
-    }
+    if (!faculty) throw new Error('Faculty not found');
+    if (!metrics || metrics.totalSubmissions === 0) throw new Error('No evaluation data available');
 
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'AFES';
@@ -30,7 +25,6 @@ export async function exportFacultyReport(facultyId: string, cycleId?: string): 
     const headerFont: Partial<ExcelJS.Font> = { color: { argb: 'FFFFFFFF' }, bold: true, size: 11 };
     const borderStyle: Partial<ExcelJS.Borders> = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
 
-    // Sheet 1: Cover
     const coverSheet = workbook.addWorksheet('Cover');
     coverSheet.columns = [{ width: 30 }, { width: 40 }];
     coverSheet.getRow(1).values = ['AFES Faculty Evaluation Report', ''];
@@ -38,14 +32,25 @@ export async function exportFacultyReport(facultyId: string, cycleId?: string): 
     coverSheet.getRow(2).values = ['Professional Development Portfolio', ''];
     coverSheet.getRow(2).font = { bold: true, size: 12, color: { argb: 'FFB87333' } };
     
-    coverSheet.getRow(4).values = ['Faculty Information', ''];
+    // Generate tracking ID and timestamp
+    const trackingId = `AFES-${Date.now()}-${facultyId}`;
+    const generationTimestamp = new Date().toLocaleString();
+    
+    // Metadata Section
+    coverSheet.getRow(4).values = ['Report Metadata', ''];
+    coverSheet.getRow(4).font = { bold: true, size: 11, color: { argb: 'FF002366' } };
+    coverSheet.getRow(5).values = ['Tracking ID', trackingId];
+    coverSheet.getRow(6).values = ['Generated', generationTimestamp];
+    coverSheet.getRow(7).values = ['Status', faculty.acknowledgmentStatus === 'acknowledged' ? '✓ Faculty Signed & Acknowledged' : '○ Pending Acknowledgment'];
+    [5, 6, 7].forEach(r => { coverSheet.getRow(r).eachCell(cell => { cell.border = borderStyle; }); });
+    
+    coverSheet.getRow(9).values = ['Faculty Information', ''];
     coverSheet.getRow(4).font = { bold: true, size: 11, color: { argb: 'FF002366' } };
     coverSheet.getRow(5).values = ['Faculty Name', faculty.name];
     coverSheet.getRow(6).values = ['Department', faculty.department];
     coverSheet.getRow(7).values = ['Title', faculty.title];
     coverSheet.getRow(8).values = ['Evaluation Period', cycle?.displayName || 'N/A'];
     [5, 6, 7, 8].forEach(r => { coverSheet.getRow(r).eachCell(cell => { cell.border = borderStyle; }); });
-    
     coverSheet.getRow(10).values = ['Performance Summary', ''];
     coverSheet.getRow(10).font = { bold: true, size: 11, color: { argb: 'FF002366' } };
     coverSheet.getRow(11).values = ['Total Submissions', metrics.totalSubmissions];
@@ -53,8 +58,7 @@ export async function exportFacultyReport(facultyId: string, cycleId?: string): 
     coverSheet.getRow(13).values = ['Acknowledgment Status', faculty.acknowledgmentStatus.replace('_', ' ').toUpperCase()];
     coverSheet.getRow(14).values = ['Report Generated', new Date().toLocaleString()];
     [11, 12, 13, 14].forEach(r => { coverSheet.getRow(r).eachCell(cell => { cell.border = borderStyle; }); });
-    
-    // Add benchmark comparison
+
     const deptMetrics = store.getDepartmentMetrics(faculty.department, effectiveCycleId);
     coverSheet.getRow(16).values = ['Benchmark Comparison', ''];
     coverSheet.getRow(16).font = { bold: true, size: 11, color: { argb: 'FF002366' } };
@@ -63,7 +67,6 @@ export async function exportFacultyReport(facultyId: string, cycleId?: string): 
     coverSheet.getRow(19).values = ['Difference', (metrics.overallAverage - deptMetrics.institutionAverage).toFixed(2)];
     [17, 18, 19].forEach(r => { coverSheet.getRow(r).eachCell(cell => { cell.border = borderStyle; }); });
 
-    // Sheet 2: Criteria Analysis
     const criteriaSheet = workbook.addWorksheet('Criteria Analysis');
     criteriaSheet.columns = [{ width: 50 }, { width: 15 }, { width: 15 }, { width: 20 }];
     criteriaSheet.getRow(1).values = ['Criterion / Sub-Question', 'Type', 'Avg Score', 'Rating'];
@@ -88,7 +91,6 @@ export async function exportFacultyReport(facultyId: string, cycleId?: string): 
       });
     });
 
-    // Sheet 3: Course Performance
     const courseSheet = workbook.addWorksheet('Course Performance');
     courseSheet.columns = [{ width: 20 }, { width: 15 }, { width: 15 }];
     courseSheet.getRow(1).values = ['Course', 'Submissions', 'Average Score'];
@@ -99,7 +101,6 @@ export async function exportFacultyReport(facultyId: string, cycleId?: string): 
       r.eachCell(cell => { cell.border = borderStyle; });
     });
 
-    // Sheet 4: Student Feedback
     const feedbackSheet = workbook.addWorksheet('Student Feedback');
     feedbackSheet.columns = [{ width: 15 }, { width: 60 }, { width: 20 }];
     feedbackSheet.getRow(1).values = ['Course', 'Feedback (PII-Redacted)', 'Date'];
@@ -110,7 +111,6 @@ export async function exportFacultyReport(facultyId: string, cycleId?: string): 
       r.eachCell(cell => { cell.border = borderStyle; });
     });
 
-    // Sheet 5: Feedback Summary
     const summarySheet = workbook.addWorksheet('Feedback Summary');
     summarySheet.columns = [{ width: 30 }, { width: 40 }];
     summarySheet.getRow(1).values = ['Metric', 'Value'];

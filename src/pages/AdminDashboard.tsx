@@ -1,19 +1,25 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { store, BENCHMARK, THRESHOLD } from '../store';
 import { exportFacultyReport } from '../utils/excel';
-
+import { exportFacultyPDF } from '../utils/pdf';
 import ConfirmDialog from '../components/ConfirmDialog';
 import type { Faculty, EvaluationCycle, Criterion, AuditLogEntry, SubQuestion, TrainingRecommendation, Dispute } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ReferenceLine } from 'recharts';
-import { LayoutDashboard, Users, Calendar, ListChecks, ScrollText, Plus, Trash2, Search, AlertTriangle, CheckCircle, TrendingUp, Shield, FileSpreadsheet, GraduationCap, Edit3, Sparkles, Download, BarChart3, MessageSquare, BookOpen, Printer } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, ListChecks, ScrollText, Plus, Trash2, Search, AlertTriangle, CheckCircle, TrendingUp, Shield, FileSpreadsheet, GraduationCap, Edit3, Sparkles, Download, BarChart3, MessageSquare, BookOpen, Printer, UserPlus } from 'lucide-react';
 import AdminPrintReport from '../components/AdminPrintReport';
+import FacultyPrintReport from '../components/FacultyPrintReport';
 
 const STAR_COLORS = ['#DC2626', '#F59E0B', '#94A3B8', '#3B82F6', '#10B981']; // 1★(Red) 2★(Amber) 3★(Slate) 4★(Blue) 5★(Emerald)
 
 type Tab = 'overview' | 'faculty' | 'cycles' | 'criteria' | 'tna' | 'disputes' | 'audit';
-interface AdminDashboardProps { viewingCycleId?: string; }
+interface AdminDashboardProps { 
+  viewingCycleId?: string;
+  onViewingCycleChange?: (cycleId: string) => void;
+}
 
-export default function AdminDashboard({ viewingCycleId }: AdminDashboardProps) {
+export default function AdminDashboard({ viewingCycleId, onViewingCycleChange }: AdminDashboardProps) {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [faculty, setFaculty] = useState<Faculty[]>([]);
   const [cycles, setCycles] = useState<EvaluationCycle[]>([]);
@@ -108,7 +114,10 @@ export default function AdminDashboard({ viewingCycleId }: AdminDashboardProps) 
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-2">
         <div className="flex gap-1 p-1 rounded-xl overflow-x-auto flex-1" style={{ backgroundColor: '#EDEBE8' }}>{tabs.map(tab => (<button key={tab.id} onClick={() => { setActiveTab(tab.id); setSelectedFaculty(null); }} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap" style={{ backgroundColor: activeTab === tab.id ? '#002366' : 'transparent', color: activeTab === tab.id ? '#FFFFFF' : '#1A1A1A' }}>{tab.icon}{tab.label}</button>))}</div>
-        <button onClick={handlePrint} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium hover:opacity-90" style={{ backgroundColor: '#D5D8DC', color: '#1A1A1A' }}><Printer size={14} />Print Report</button>
+        <div className="flex gap-2">
+          <button onClick={() => navigate('/create-account')} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium hover:opacity-90" style={{ backgroundColor: '#2E8B57', color: '#FFFFFF' }}><UserPlus size={14} />Create Account</button>
+          <button onClick={handlePrint} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium hover:opacity-90" style={{ backgroundColor: '#D5D8DC', color: '#1A1A1A' }}><Printer size={14} />Print Report</button>
+        </div>
       </div>
       
       {activeTab === 'overview' && !selectedFaculty && (
@@ -119,7 +128,6 @@ export default function AdminDashboard({ viewingCycleId }: AdminDashboardProps) 
             <div className="rounded-xl p-4 shadow-sm" style={{ backgroundColor: '#EDEBE8' }}><p className="text-xs font-medium mb-1" style={{ color: '#4B5563' }}>Acknowledged</p><p className="text-2xl font-bold" style={{ color: '#2E8B57' }}>{acknowledgedCount}/{faculty.length}</p></div>
             <div className="rounded-xl p-4 shadow-sm" style={{ backgroundColor: '#EDEBE8' }}><p className="text-xs font-medium mb-1" style={{ color: '#4B5563' }}>Below Benchmark</p><p className="text-2xl font-bold" style={{ color: '#C41E3A' }}>{flaggedFaculty.length}</p></div>
           </div>
-
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="rounded-xl p-5 shadow-sm" style={{ backgroundColor: '#EDEBE8' }}>
@@ -230,6 +238,28 @@ export default function AdminDashboard({ viewingCycleId }: AdminDashboardProps) 
         const metrics = store.getFacultyMetrics(selectedFaculty.id, cycleId);
         const criteriaBarData = criteria.map(c => ({ name: c.name, score: metrics.criteriaAverages[c.id] || 0 }));
         const belowThreshold = metrics.totalSubmissions < THRESHOLD;
+        const subQuestions = store.getSubQuestions();
+        
+        const handlePrint = () => {
+          setIsPrintMode(true);
+          setTimeout(() => {
+            window.print();
+            setIsPrintMode(false);
+          }, 100);
+        };
+        
+        // Render print view if in print mode
+        if (isPrintMode && metrics) {
+          return (
+            <FacultyPrintReport
+              facultyId={selectedFaculty.id}
+              metrics={metrics}
+              criteria={criteria}
+              subQuestions={subQuestions}
+              cycleName={activeCycle?.displayName || 'Current Cycle'}
+            />
+          );
+        }
         
         return (
           <div className="space-y-6">
@@ -241,9 +271,17 @@ export default function AdminDashboard({ viewingCycleId }: AdminDashboardProps) 
                   <p className="text-sm" style={{ color: '#4B5563' }}>{selectedFaculty.title} • {selectedFaculty.department}</p>
                 </div>
               </div>
-              <button onClick={() => exportFacultyReport(selectedFaculty.id, cycleId)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90" style={{ backgroundColor: '#2E8B57' }}>
-                <Download size={16} /> Export XLSX
-              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={async () => await exportFacultyReport(selectedFaculty.id, cycleId)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90" style={{ backgroundColor: '#2E8B57' }}>
+                  <Download size={16} /> Export XLSX
+                </button>
+                <button onClick={async () => await exportFacultyPDF(selectedFaculty.id, cycleId)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90" style={{ backgroundColor: '#B87333' }}>
+                  <Download size={16} /> Export PDF
+                </button>
+                <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90" style={{ backgroundColor: '#D5D8DC', color: '#1A1A1A' }}>
+                  <Printer size={16} /> Print
+                </button>
+              </div>
             </div>
 
             {belowThreshold ? (
@@ -270,22 +308,91 @@ export default function AdminDashboard({ viewingCycleId }: AdminDashboardProps) 
                   </div>
                 </div>
 
+                {/* E-Signature Display */}
+                {selectedFaculty.acknowledgmentStatus === 'acknowledged' && selectedFaculty.signature && (
+                  <div className="rounded-xl p-5 shadow-sm" style={{ backgroundColor: '#EDEBE8' }}>
+                    <h3 className="text-sm font-semibold mb-3" style={{ color: '#002366' }}>E-Signature</h3>
+                    <div className="flex items-center gap-4 p-4 rounded-lg" style={{ backgroundColor: '#F8F6F1', border: '1px solid #D5D8DC' }}>
+                      <img 
+                        src={selectedFaculty.signature} 
+                        alt="Faculty Signature" 
+                        className="border rounded"
+                        style={{ maxHeight: '80px', borderColor: '#D5D8DC' }}
+                      />
+                      <div className="text-xs" style={{ color: '#4B5563' }}>
+                        <p className="font-semibold" style={{ color: '#002366' }}>Signed</p>
+                        <p>{selectedFaculty.acknowledgedAt ? new Date(selectedFaculty.acknowledgedAt).toLocaleString() : 'N/A'}</p>
+                        <p className="mt-2">Verified by: {selectedFaculty.acknowledgedBy || 'Self'}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Criteria Performance with Sub-Questions */}
                 <div className="rounded-xl p-5 shadow-sm" style={{ backgroundColor: '#EDEBE8' }}>
                   <h3 className="text-sm font-semibold mb-3" style={{ color: '#002366' }}>Criteria Performance</h3>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={criteriaBarData} layout="vertical" margin={{ left: 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#D5D8DC" />
-                      <XAxis type="number" domain={[0, 5]} tick={{ fontSize: 11 }} />
-                      <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={100} />
-                      <Tooltip />
-                      <ReferenceLine x={BENCHMARK} stroke="#C41E3A" strokeDasharray="5 5" />
-                      <Bar dataKey="score" radius={[0, 4, 4, 0]}>
-                        {criteriaBarData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.score >= BENCHMARK ? '#2E8B57' : '#C41E3A'} />
+                  <div className="space-y-3">
+                    {criteria.map((crit, i) => {
+                      const critAvg = metrics.criteriaAverages[crit.id] || 0;
+                      const critSubQuestions = subQuestions.filter(sq => sq.criterionId === crit.id);
+                      return (
+                        <div key={i} className="rounded-lg overflow-hidden" style={{ backgroundColor: '#F8F6F1' }}>
+                          <div className="flex items-center justify-between p-3" style={{ backgroundColor: '#F5E6D3' }}>
+                            <span className="text-sm font-semibold" style={{ color: '#002366' }}>{crit.name}</span>
+                            <span className="text-sm font-bold" style={{ 
+                              color: critAvg >= 4.5 ? '#2E8B57' : critAvg >= BENCHMARK ? '#002366' : '#C41E3A' 
+                            }}>
+                              {critAvg.toFixed(2)} / 5.0
+                            </span>
+                          </div>
+                          <div className="p-3 space-y-1">
+                            {critSubQuestions.map((sq, j) => {
+                              const sqAvg = metrics.subQuestionAverages[sq.id] || 0;
+                              return (
+                                <div key={j} className="flex items-center justify-between pl-4 py-1 text-xs">
+                                  <span className="flex-1" style={{ color: '#4B5563' }}>→ {sq.text}</span>
+                                  <span className="font-semibold ml-2" style={{ 
+                                    color: sqAvg >= 4.5 ? '#2E8B57' : sqAvg >= BENCHMARK ? '#002366' : '#C41E3A' 
+                                  }}>
+                                    {sqAvg.toFixed(2)}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Course Performance */}
+                <div className="rounded-xl p-5 shadow-sm" style={{ backgroundColor: '#EDEBE8' }}>
+                  <h3 className="text-sm font-semibold mb-3" style={{ color: '#002366' }}>Course Performance</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr style={{ backgroundColor: '#002366' }}>
+                          <th className="text-left px-4 py-2 text-white font-medium">Course</th>
+                          <th className="text-center px-4 py-2 text-white font-medium">Submissions</th>
+                          <th className="text-center px-4 py-2 text-white font-medium">Average</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(metrics.courseBreakdown).map(([course, data], i) => (
+                          <tr key={course} style={{ backgroundColor: i % 2 === 0 ? '#EDEBE8' : '#F8F6F1' }}>
+                            <td className="px-4 py-2 font-medium" style={{ color: '#1A1A1A' }}>{course}</td>
+                            <td className="px-4 py-2 text-center">{data.count}</td>
+                            <td className="px-4 py-2 text-center font-bold" style={{ 
+                              color: data.average >= 4.5 ? '#2E8B57' : data.average >= BENCHMARK ? '#002366' : '#C41E3A' 
+                            }}>
+                              {data.average.toFixed(2)}
+                            </td>
+                          </tr>
                         ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
 
                 <div className="rounded-xl p-5 shadow-sm" style={{ backgroundColor: '#EDEBE8' }}>
@@ -308,7 +415,7 @@ export default function AdminDashboard({ viewingCycleId }: AdminDashboardProps) 
       {activeTab === 'cycles' && (
         <div className="space-y-6">
           <div className="rounded-xl p-5 shadow-sm" style={{ backgroundColor: '#EDEBE8' }}><h3 className="text-sm font-semibold mb-4 flex items-center gap-2" style={{ color: '#002366' }}><Plus size={16} style={{ color: '#B87333' }} />Create New Cycle</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-3"><input type="text" value={newCycleName} onChange={e => setNewCycleName(e.target.value)} placeholder="Internal name" className="px-3 py-2 rounded-lg border text-sm outline-none" style={{ backgroundColor: '#F8F6F1', borderColor: '#D5D8DC' }} /><input type="text" value={newCycleDisplayName} onChange={e => setNewCycleDisplayName(e.target.value)} placeholder="Display name" className="px-3 py-2 rounded-lg border text-sm outline-none" style={{ backgroundColor: '#F8F6F1', borderColor: '#D5D8DC' }} /><input type="date" value={newCycleStart} onChange={e => setNewCycleStart(e.target.value)} className="px-3 py-2 rounded-lg border text-sm outline-none" style={{ backgroundColor: '#F8F6F1', borderColor: '#D5D8DC' }} /><input type="date" value={newCycleEnd} onChange={e => setNewCycleEnd(e.target.value)} className="px-3 py-2 rounded-lg border text-sm outline-none" style={{ backgroundColor: '#F8F6F1', borderColor: '#D5D8DC' }} /></div><button onClick={async () => { if (newCycleName && newCycleDisplayName && newCycleStart && newCycleEnd) { await store.addCycle({ name: newCycleName, displayName: newCycleDisplayName, startDate: newCycleStart, endDate: newCycleEnd, status: 'upcoming' }); setNewCycleName(''); setNewCycleDisplayName(''); setNewCycleStart(''); setNewCycleEnd(''); } }} className="px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90" style={{ backgroundColor: '#002366' }}>Create Cycle</button></div>
-          <div className="space-y-3">{cycles.map(cycle => (<div key={cycle.id} className="rounded-xl p-4 shadow-sm flex items-center justify-between flex-wrap gap-2" style={{ backgroundColor: '#EDEBE8' }}><div><p className="font-semibold text-sm" style={{ color: '#002366' }}>{cycle.displayName}</p><p className="text-xs" style={{ color: '#4B5563' }}>{cycle.startDate} — {cycle.endDate}</p></div><div className="flex items-center gap-2 flex-wrap"><span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: cycle.status === 'active' ? '#D1FAE5' : cycle.status === 'upcoming' ? '#F5E6D3' : '#D5D8DC', color: cycle.status === 'active' ? '#2E8B57' : cycle.status === 'upcoming' ? '#B87333' : '#4B5563' }}>{cycle.status}</span>{cycle.status !== 'active' && cycle.status !== 'archived' && <button onClick={() => store.activateCycle(cycle.id)} className="px-3 py-1 rounded text-xs font-medium text-white hover:opacity-90" style={{ backgroundColor: '#2E8B57' }}>Activate</button>}<button onClick={() => setConfirmDialog({ open: true, type: 'danger', title: 'Remove Cycle', message: `Remove "${cycle.displayName}"?`, onConfirm: async () => { await store.removeCycle(cycle.id); setConfirmDialog(prev => ({ ...prev, open: false })); } })} className="px-2 py-1 rounded text-xs text-white hover:opacity-90" style={{ backgroundColor: '#C41E3A' }}><Trash2 size={12} /></button></div></div>))}</div>
+          <div className="space-y-3">{cycles.map(cycle => (<div key={cycle.id} className="rounded-xl p-4 shadow-sm flex items-center justify-between flex-wrap gap-2" style={{ backgroundColor: '#EDEBE8' }}><div><p className="font-semibold text-sm" style={{ color: '#002366' }}>{cycle.displayName}</p><p className="text-xs" style={{ color: '#4B5563' }}>{cycle.startDate} — {cycle.endDate}</p></div><div className="flex items-center gap-2 flex-wrap"><span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: cycle.status === 'active' ? '#D1FAE5' : cycle.status === 'upcoming' ? '#F5E6D3' : cycle.status === 'archived' ? '#FEE2E2' : '#D5D8DC', color: cycle.status === 'active' ? '#2E8B57' : cycle.status === 'upcoming' ? '#B87333' : cycle.status === 'archived' ? '#C41E3A' : '#4B5563' }}>{cycle.status}</span>{cycle.status !== 'active' && cycle.status !== 'archived' && <button onClick={() => setConfirmDialog({ open: true, type: 'warning', title: 'Activate Cycle', message: `Activate "${cycle.displayName}"? This will make it the current active evaluation period.`, onConfirm: async () => { await store.activateCycle(cycle.id); setConfirmDialog(prev => ({ ...prev, open: false })); } })} className="px-3 py-1 rounded text-xs font-medium text-white hover:opacity-90" style={{ backgroundColor: '#2E8B57' }}>Activate</button>}{cycle.status === 'archived' && <button onClick={() => store.unarchiveCycle(cycle.id)} className="px-3 py-1 rounded text-xs font-medium text-white hover:opacity-90" style={{ backgroundColor: '#B87333' }}>Unarchive</button>}<button onClick={() => setConfirmDialog({ open: true, type: 'danger', title: 'Remove Cycle', message: `Remove "${cycle.displayName}"?`, onConfirm: async () => { await store.removeCycle(cycle.id); setConfirmDialog(prev => ({ ...prev, open: false })); } })} className="px-2 py-1 rounded text-xs text-white hover:opacity-90" style={{ backgroundColor: '#C41E3A' }}><Trash2 size={12} /></button></div></div>))}</div>
         </div>
       )}
 

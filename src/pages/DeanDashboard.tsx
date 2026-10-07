@@ -9,13 +9,17 @@ import DeanPrintReport from '../components/DeanPrintReport';
 
 const COLORS = ['#002366', '#B87333', '#C41E3A', '#2E8B57', '#6366F1'];
 const STAR_COLORS = ['#DC2626', '#F59E0B', '#94A3B8', '#3B82F6', '#10B981']; // 1★(Red) 2★(Amber) 3★(Slate) 4★(Blue) 5★(Emerald)
-interface DeanDashboardProps { viewingCycleId?: string; }
+interface DeanDashboardProps { 
+  viewingCycleId?: string;
+  onViewingCycleChange?: (cycleId: string) => void;
+}
 
-export default function DeanDashboard({ viewingCycleId }: DeanDashboardProps) {
+export default function DeanDashboard({ viewingCycleId, onViewingCycleChange }: DeanDashboardProps) {
   const { user } = useAuth();
   const department = user?.department || '';
   const [criteria, setCriteria] = useState<Criterion[]>([]);
   const [isPrintMode, setIsPrintMode] = useState(false);
+  const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
   const activeCycle = store.getActiveCycle();
   const cycleId = viewingCycleId || activeCycle?.id;
   const allCycles = store.getCycles();
@@ -289,6 +293,7 @@ export default function DeanDashboard({ viewingCycleId }: DeanDashboardProps) {
                 <th className="text-center px-4 py-2 text-white font-medium">Submissions</th>
                 <th className="text-center px-4 py-2 text-white font-medium">Average</th>
                 <th className="text-center px-4 py-2 text-white font-medium">Status</th>
+                <th className="text-center px-4 py-2 text-white font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -309,12 +314,179 @@ export default function DeanDashboard({ viewingCycleId }: DeanDashboardProps) {
                       {f.acknowledgmentStatus === 'acknowledged' ? '✓ Ack' : f.acknowledgmentStatus === 'pending_acknowledgment' ? '⏳ Ack' : '⏳ Review'}
                     </span>
                   </td>
+                  <td className="px-4 py-2 text-center">
+                    {f.acknowledgmentStatus === 'acknowledged' && (
+                      <button 
+                        onClick={() => setSelectedFacultyId(f.id)}
+                        className="px-3 py-1 rounded text-xs font-medium text-white hover:opacity-90"
+                        style={{ backgroundColor: '#002366' }}
+                      >
+                        View Details
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Faculty Detail View */}
+      {selectedFacultyId && (() => {
+        const selectedFaculty = faculty.find(f => f.id === selectedFacultyId);
+        if (!selectedFaculty || selectedFaculty.acknowledgmentStatus !== 'acknowledged') return null;
+        
+        const metrics = store.getFacultyMetrics(selectedFacultyId, cycleId);
+        const critData = criteria.map(c => ({
+          id: c.id,
+          name: c.name,
+          avg: metrics.criteriaAverages[c.id] || 0,
+        }));
+
+        return (
+          <div className="rounded-xl p-5 shadow-sm" style={{ backgroundColor: '#F8F6F1', border: '2px solid #002366' }}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold" style={{ color: '#002366' }}>
+                {selectedFaculty.name} - Detailed Performance
+              </h3>
+              <button 
+                onClick={() => setSelectedFacultyId(null)}
+                className="px-3 py-1 rounded text-sm font-medium hover:opacity-90"
+                style={{ backgroundColor: '#D5D8DC', color: '#1A1A1A' }}
+              >
+                Close
+              </button>
+            </div>
+
+            {/* Faculty Info */}
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="p-3 rounded-lg" style={{ backgroundColor: '#EDEBE8' }}>
+                <p className="text-xs" style={{ color: '#4B5563' }}>Department</p>
+                <p className="text-sm font-semibold" style={{ color: '#002366' }}>{selectedFaculty.department}</p>
+              </div>
+              <div className="p-3 rounded-lg" style={{ backgroundColor: '#EDEBE8' }}>
+                <p className="text-xs" style={{ color: '#4B5563' }}>Title</p>
+                <p className="text-sm font-semibold" style={{ color: '#002366' }}>{selectedFaculty.title}</p>
+              </div>
+              <div className="p-3 rounded-lg" style={{ backgroundColor: '#EDEBE8' }}>
+                <p className="text-xs" style={{ color: '#4B5563' }}>Acknowledged</p>
+                <p className="text-sm font-semibold" style={{ color: '#2E8B57' }}>
+                  {selectedFaculty.acknowledgedAt ? new Date(selectedFaculty.acknowledgedAt).toLocaleDateString() : 'N/A'}
+                </p>
+              </div>
+              <div className="p-3 rounded-lg" style={{ backgroundColor: '#EDEBE8' }}>
+                <p className="text-xs" style={{ color: '#4B5563' }}>Total Submissions</p>
+                <p className="text-sm font-semibold" style={{ color: '#002366' }}>{metrics.totalSubmissions}</p>
+              </div>
+            </div>
+
+            {/* Signature Display */}
+            {selectedFaculty.signature && (
+              <div className="mb-4 p-4 rounded-lg" style={{ backgroundColor: '#FFFFFF', border: '1px solid #D5D8DC' }}>
+                <h4 className="text-sm font-semibold mb-2" style={{ color: '#002366' }}>E-Signature</h4>
+                <div className="flex items-center gap-4">
+                  <img 
+                    src={selectedFaculty.signature} 
+                    alt="Faculty Signature" 
+                    className="border rounded"
+                    style={{ maxHeight: '80px', borderColor: '#D5D8DC' }}
+                  />
+                  <div className="text-xs" style={{ color: '#4B5563' }}>
+                    <p>Signed: {selectedFaculty.acknowledgedAt ? new Date(selectedFaculty.acknowledgedAt).toLocaleString() : 'N/A'}</p>
+                    <p>Verified by: {selectedFaculty.acknowledgedBy || 'Self'}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Criteria Performance with Sub-Questions */}
+            <div className="mb-4">
+              <h4 className="text-sm font-semibold mb-2" style={{ color: '#002366' }}>Criteria Performance</h4>
+              <div className="space-y-3">
+                {critData.map((crit, i) => {
+                  const subQuestions = store.getSubQuestionsForCriterion(crit.id);
+                  return (
+                    <div key={i} className="rounded-lg overflow-hidden" style={{ backgroundColor: '#EDEBE8' }}>
+                      <div className="flex items-center justify-between p-2" style={{ backgroundColor: '#F5E6D3' }}>
+                        <span className="text-sm font-semibold" style={{ color: '#002366' }}>{crit.name}</span>
+                        <span className="text-sm font-bold" style={{ 
+                          color: crit.avg >= 4.5 ? '#2E8B57' : crit.avg >= BENCHMARK ? '#002366' : '#C41E3A' 
+                        }}>
+                          {crit.avg.toFixed(2)} / 5.0
+                        </span>
+                      </div>
+                      <div className="p-2 space-y-1">
+                        {subQuestions.map((sq, j) => {
+                          const sqAvg = metrics.subQuestionAverages[sq.id] || 0;
+                          return (
+                            <div key={j} className="flex items-center justify-between pl-4 py-1 text-xs">
+                              <span className="flex-1" style={{ color: '#4B5563' }}>→ {sq.text}</span>
+                              <span className="font-semibold ml-2" style={{ 
+                                color: sqAvg >= 4.5 ? '#2E8B57' : sqAvg >= BENCHMARK ? '#002366' : '#C41E3A' 
+                              }}>
+                                {sqAvg.toFixed(2)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Course Performance */}
+            <div className="mb-4">
+              <h4 className="text-sm font-semibold mb-2" style={{ color: '#002366' }}>Course Performance</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr style={{ backgroundColor: '#002366' }}>
+                      <th className="text-left px-3 py-2 text-white">Course</th>
+                      <th className="text-center px-3 py-2 text-white">Submissions</th>
+                      <th className="text-center px-3 py-2 text-white">Average</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(metrics.courseBreakdown).map(([course, data], i) => (
+                      <tr key={course} style={{ backgroundColor: i % 2 === 0 ? '#EDEBE8' : '#F8F6F1' }}>
+                        <td className="px-3 py-2 font-medium" style={{ color: '#1A1A1A' }}>{course}</td>
+                        <td className="px-3 py-2 text-center">{data.count}</td>
+                        <td className="px-3 py-2 text-center font-bold" style={{ 
+                          color: data.average >= 4.5 ? '#2E8B57' : data.average >= BENCHMARK ? '#002366' : '#C41E3A' 
+                        }}>
+                          {data.average.toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Student Feedback */}
+            {metrics.feedback.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold mb-2" style={{ color: '#002366' }}>
+                  Student Feedback ({metrics.feedback.length} entries)
+                </h4>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {metrics.feedback.map((fb, i) => (
+                    <div key={i} className="p-3 rounded-lg text-sm" style={{ backgroundColor: '#EDEBE8' }}>
+                      <p style={{ color: '#1A1A1A' }}>{fb.feedback}</p>
+                      <p className="text-xs mt-1" style={{ color: '#9CA3AF' }}>
+                        {fb.courseId} • {new Date(fb.submittedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Course-Level Performance */}
       <div className="rounded-xl p-5 shadow-sm" style={{ backgroundColor: '#EDEBE8' }}>

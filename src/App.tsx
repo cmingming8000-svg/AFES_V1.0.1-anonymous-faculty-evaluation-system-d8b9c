@@ -7,6 +7,7 @@ import StudentDashboard from './pages/StudentDashboard';
 import FacultyDashboard from './pages/FacultyDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import DeanDashboard from './pages/DeanDashboard';
+import AccountCreation from './pages/AccountCreation';
 import type { UserRole } from './types';
 
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles: UserRole[] }) {
@@ -32,19 +33,24 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
-      <Route path="/" element={<ProtectedRoute allowedRoles={['admin', 'faculty', 'student', 'dean']}><DashboardRouter /></ProtectedRoute>} />
+      <Route path="/" element={<ProtectedRoute allowedRoles={['admin', 'faculty', 'student', 'dean']}><DashboardRouterWrapper /></ProtectedRoute>} />
+      <Route path="/create-account" element={<ProtectedRoute allowedRoles={['admin']}><AccountCreation /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
 
-function DashboardRouter() {
+function DashboardRouterWrapper({ viewingCycleId = '', onViewingCycleChange = () => {} }: { viewingCycleId?: string; onViewingCycleChange?: (cycleId: string) => void }) {
+  return <DashboardRouter viewingCycleId={viewingCycleId} onViewingCycleChange={onViewingCycleChange} />;
+}
+
+function DashboardRouter({ viewingCycleId, onViewingCycleChange }: { viewingCycleId: string; onViewingCycleChange: (cycleId: string) => void }) {
   const { user } = useAuth();
   switch (user?.role) {
-    case 'admin': return <AdminDashboard />;
-    case 'faculty': return <FacultyDashboard />;
-    case 'student': return <StudentDashboard />;
-    case 'dean': return <DeanDashboard />;
+    case 'admin': return <AdminDashboard viewingCycleId={viewingCycleId} onViewingCycleChange={onViewingCycleChange} />;
+    case 'faculty': return <FacultyDashboard viewingCycleId={viewingCycleId} onViewingCycleChange={onViewingCycleChange} />;
+    case 'student': return <StudentDashboard viewingCycleId={viewingCycleId} onViewingCycleChange={onViewingCycleChange} />;
+    case 'dean': return <DeanDashboard viewingCycleId={viewingCycleId} onViewingCycleChange={onViewingCycleChange} />;
     default: return <Navigate to="/login" replace />;
   }
 }

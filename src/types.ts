@@ -26,6 +26,7 @@ export interface Faculty {
   acknowledgmentStatus: 'pending_review' | 'pending_acknowledgment' | 'acknowledged' | 'disputed';
   acknowledgedAt?: string;
   acknowledgedBy?: string;
+  signature?: string; // Base64 encoded signature image
   disputeId?: string;
   lastReminderSent?: string;
 }
@@ -64,6 +65,9 @@ export interface EvaluationCycle {
   startDate: string;
   endDate: string;
   status: 'active' | 'upcoming' | 'completed' | 'archived';
+  verificationStatus?: 'pending_verification' | 'verified' | 'released';
+  verifiedAt?: string;
+  verifiedBy?: string;
 }
 
 export interface Criterion {
@@ -77,7 +81,7 @@ export interface Evaluation {
   facultyId: string;
   courseId: string;
   cycleId: string;
-  ratings: Record<string, number>; // subQuestionId -> rating (1-5)
+  ratings: Record<string, number>;
   feedback: string;
   submittedAt: string;
 }
@@ -96,28 +100,14 @@ export interface RateLimitEntry {
   windowStart: number;
 }
 
-export type EventType = 'criteria_changed' | 'cycle_changed' | 'submission_added' | 'data_refresh' | 'acknowledgment_changed' | 'training_changed' | 'dispute_submitted' | 'dispute_resolved';
-
-export interface Dispute {
-  id: string;
-  facultyId: string;
-  cycleId: string;
-  submittedAt: string;
-  justification: string;
-  status: 'pending' | 'resolved' | 'dismissed';
-  resolvedAt?: string;
-  resolvedBy?: string;
-  resolution?: string;
-  adjustedScores?: Record<string, number>;
-  redactedFeedback?: string[];
-}
+export type EventType = 'criteria_changed' | 'cycle_changed' | 'submission_added' | 'data_refresh' | 'acknowledgment_changed' | 'training_changed' | 'dispute_submitted' | 'dispute_resolved' | 'verification_changed';
 
 export interface FacultyMetrics {
   totalSubmissions: number;
   overallAverage: number;
   criteriaAverages: Record<string, number>;
   subQuestionAverages: Record<string, number>;
-  scoreDistribution: number[]; // [1s, 2s, 3s, 4s, 5s]
+  scoreDistribution: number[];
   feedback: Array<{ feedback: string; courseId: string; submittedAt: string }>;
   courseBreakdown: Record<string, { count: number; average: number }>;
 }
@@ -129,4 +119,16 @@ export interface TrainingRecommendation {
   recommendation: string;
   generatedAt: string;
   editedByAdmin: boolean;
+}
+
+export interface Dispute {
+  id: string;
+  facultyId: string;
+  cycleId: string;
+  submittedAt: string;
+  justification: string;
+  status: 'pending' | 'resolved' | 'dismissed';
+  resolvedAt?: string;
+  resolvedBy?: string;
+  resolution?: string;
 }

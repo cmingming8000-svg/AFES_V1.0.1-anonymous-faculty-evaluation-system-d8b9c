@@ -9,6 +9,7 @@ export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [activeCycle, setActiveCycle] = useState<EvaluationCycle | undefined>();
+  const [showQuickLogin, setShowQuickLogin] = useState(false);
 
   useEffect(() => {
     setActiveCycle(store.getActiveCycle());
@@ -16,7 +17,14 @@ export default function Login() {
     return unsub;
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => { e.preventDefault(); await login(username, password); };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (username === 'dev' && password === '123dev') {
+      setShowQuickLogin(true);
+      return;
+    }
+    await login(username, password);
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(135deg, #D5D8DC 0%, #EDEBE8 100%)' }}>
@@ -54,9 +62,10 @@ export default function Login() {
               {isLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><LogIn size={18} />Sign In</>}
             </button>
           </form>
-          <div className="mt-6 pt-4 border-t" style={{ borderColor: '#D5D8DC' }}>
-            <label className="block text-xs font-medium mb-2" style={{ color: '#B87333' }}>Quick Login (Demo Accounts):</label>
-            <select 
+          {showQuickLogin && (
+            <div className="mt-6 pt-4 border-t" style={{ borderColor: '#D5D8DC' }}>
+              <label className="block text-xs font-medium mb-2" style={{ color: '#B87333' }}>Quick Login (Demo Accounts):</label>
+              <select 
               onChange={(e) => {
                 const [username, password] = e.target.value.split('|');
                 if (username && password) {
@@ -71,17 +80,20 @@ export default function Login() {
               <option value="" disabled>Select an account...</option>
               <optgroup label="Admin">
                 <option value="admin|admin">System Administrator (admin / admin)</option>
+                <option value="test_admin|test123">TEST Administrator (test_admin / test123)</option>
               </optgroup>
               <optgroup label="Faculty">
                 <option value="faculty|faculty">Dr. Sarah Chen - CS (faculty / faculty)</option>
-                <option value="faculty2|faculty2">Dr. Jennifer Lee - CS (faculty2 / faculty2) ⚡ Resets on refresh</option>
+                <option value="faculty2|faculty2">Dr. Jennifer Lee - CS (faculty2 / faculty2)</option>
                 <option value="faculty3|faculty3">Dr. Thomas Wright - Math (faculty3 / faculty3)</option>
                 <option value="faculty4|faculty4">Dr. Amanda Clark - Physics (faculty4 / faculty4)</option>
+                <option value="test_faculty|test123">TEST Faculty (test_faculty / test123)</option>
               </optgroup>
               <optgroup label="Deans">
                 <option value="M001|dean123">Dr. Patricia Moore - CS Dean (M001 / dean123)</option>
                 <option value="M002|dean123">Dr. William Chang - Math Dean (M002 / dean123)</option>
                 <option value="M003|dean123">Dr. Elizabeth Brown - Physics Dean (M003 / dean123)</option>
+                <option value="test_dean|test123">TEST Dean (test_dean / test123)</option>
               </optgroup>
               <optgroup label="Students - BS Computer Science">
                 <option value="C24-001|pass123">Alice Johnson (C24-001 / pass123)</option>
@@ -95,7 +107,7 @@ export default function Login() {
                 <option value="C24-018|pass123">Ava Williams (C24-018 / pass123)</option>
                 <option value="C24-021|pass123">Liam Johnson (C24-021 / pass123)</option>
                 <option value="C24-024|pass123">Charlotte Davis (C24-024 / pass123)</option>
-                <option value="C24-025|pass123">Ryan Martinez (C24-025 / pass123) ⚡ Resets on refresh</option>
+                <option value="C24-025|pass123">Ryan Martinez (C24-025 / pass123)</option>
               </optgroup>
               <optgroup label="Students - BS Mathematics">
                 <option value="C24-007|pass123">Grace Taylor (C24-007 / pass123)</option>
@@ -114,9 +126,13 @@ export default function Login() {
                 <option value="C24-020|pass123">Isabella Lopez (C24-020 / pass123)</option>
                 <option value="C24-023|pass123">James Wilson (C24-023 / pass123)</option>
               </optgroup>
+              <optgroup label="Test Accounts">
+                <option value="test_student|test123">TEST Student (test_student / test123)</option>
+              </optgroup>
             </select>
             <p className="text-[10px] text-center" style={{ color: '#9CA3AF' }}>Select an account to auto-fill credentials, then click Sign In</p>
           </div>
+        )}
         </div>
       </div>
     </div>

@@ -1,44 +1,37 @@
 import { v4 as uuidv4 } from 'uuid';
 import type { User, Faculty, Student, Dean, EvaluationCycle, Criterion, SubQuestion, Evaluation, AuditLogEntry, RateLimitEntry, FacultyMetrics, EventType, TrainingRecommendation, Dispute, Program, Subject } from './types';
-import { saveToLocalStorage, loadFromLocalStorage, clearLocalStorage } from './utils/persistence';
+import { saveToLocalStorage, loadFromLocalStorage } from './utils/persistence';
 
 const BENCHMARK = 3.0;
 const THRESHOLD = 10;
 
 const SUB_QUESTIONS: SubQuestion[] = [
-  // Teaching Style (3 sub-questions)
   { id: 'sq-teaching-1', criterionId: 'crit-teaching', text: 'Uses effective and engaging teaching methods', order: 1 },
   { id: 'sq-teaching-2', criterionId: 'crit-teaching', text: 'Presents material in a clear and organized manner', order: 2 },
   { id: 'sq-teaching-3', criterionId: 'crit-teaching', text: 'Encourages active participation and critical thinking', order: 3 },
-  
-  // Mastery of Subject (3 sub-questions)
   { id: 'sq-mastery-1', criterionId: 'crit-mastery', text: 'Demonstrates deep knowledge of the subject matter', order: 1 },
   { id: 'sq-mastery-2', criterionId: 'crit-mastery', text: 'Answers questions accurately and confidently', order: 2 },
   { id: 'sq-mastery-3', criterionId: 'crit-mastery', text: 'Connects theory to real-world applications effectively', order: 3 },
-  
-  // Punctuality (3 sub-questions)
   { id: 'sq-punctuality-1', criterionId: 'crit-punctuality', text: 'Starts and ends class on time', order: 1 },
   { id: 'sq-punctuality-2', criterionId: 'crit-punctuality', text: 'Returns graded assignments and feedback promptly', order: 2 },
   { id: 'sq-punctuality-3', criterionId: 'crit-punctuality', text: 'Meets scheduled office hours consistently', order: 3 },
-  
-  // Professionalism (3 sub-questions)
   { id: 'sq-professionalism-1', criterionId: 'crit-professionalism', text: 'Maintains respectful and professional communication', order: 1 },
   { id: 'sq-professionalism-2', criterionId: 'crit-professionalism', text: 'Demonstrates fairness and integrity in all interactions', order: 2 },
   { id: 'sq-professionalism-3', criterionId: 'crit-professionalism', text: 'Shows commitment to student success and development', order: 3 },
 ];
 
 const FACULTY_SEED: Faculty[] = [
-  { id: 'F001', name: 'Dr. Sarah Chen', department: 'Computer Science', title: 'Associate Professor', courses: ['CS101', 'CS201', 'CS301'], acknowledgmentStatus: 'acknowledged', acknowledgedAt: '2026-03-10T14:30:00Z', acknowledgedBy: 'F001' },
-  { id: 'F002', name: 'Dr. James Wilson', department: 'Computer Science', title: 'Professor', courses: ['CS401', 'CS350'], acknowledgmentStatus: 'pending_acknowledgment' },
+  { id: 'F001', name: 'Dr. Sarah Chen', department: 'Computer Science', title: 'Associate Professor', courses: ['CS101', 'CS201', 'CS301'], acknowledgmentStatus: 'pending_review' },
+  { id: 'F002', name: 'Dr. James Wilson', department: 'Computer Science', title: 'Professor', courses: ['CS401', 'CS350'], acknowledgmentStatus: 'pending_review' },
   { id: 'F003', name: 'Dr. Maria Garcia', department: 'Mathematics', title: 'Assistant Professor', courses: ['MATH101', 'MATH201'], acknowledgmentStatus: 'pending_review' },
   { id: 'F004', name: 'Dr. Robert Kim', department: 'Mathematics', title: 'Professor', courses: ['MATH301'], acknowledgmentStatus: 'pending_review' },
-  { id: 'F005', name: 'Dr. Emily Thompson', department: 'Physics', title: 'Associate Professor', courses: ['PHYS101', 'PHYS301'], acknowledgmentStatus: 'pending_acknowledgment' },
-  { id: 'F006', name: 'Dr. Michael Brown', department: 'Computer Science', title: 'Assistant Professor', courses: ['CS150', 'CS250'], acknowledgmentStatus: 'acknowledged', acknowledgedAt: '2026-03-12T09:15:00Z', acknowledgedBy: 'F006' },
-  { id: 'F007', name: 'Dr. Lisa Anderson', department: 'Mathematics', title: 'Associate Professor', courses: ['MATH150', 'MATH250'], acknowledgmentStatus: 'pending_acknowledgment' },
+  { id: 'F005', name: 'Dr. Emily Thompson', department: 'Physics', title: 'Associate Professor', courses: ['PHYS101', 'PHYS301'], acknowledgmentStatus: 'pending_review' },
+  { id: 'F006', name: 'Dr. Michael Brown', department: 'Computer Science', title: 'Assistant Professor', courses: ['CS150', 'CS250'], acknowledgmentStatus: 'pending_review' },
+  { id: 'F007', name: 'Dr. Lisa Anderson', department: 'Mathematics', title: 'Associate Professor', courses: ['MATH150', 'MATH250'], acknowledgmentStatus: 'pending_review' },
   { id: 'F008', name: 'Dr. David Martinez', department: 'Physics', title: 'Assistant Professor', courses: ['PHYS201'], acknowledgmentStatus: 'pending_review' },
-  { id: 'F009', name: 'Dr. Jennifer Lee', department: 'Computer Science', title: 'Lecturer', courses: ['CS101'], acknowledgmentStatus: 'acknowledged', acknowledgedAt: '2026-03-15T10:00:00Z', acknowledgedBy: 'F009' },
+  { id: 'F009', name: 'Dr. Jennifer Lee', department: 'Computer Science', title: 'Lecturer', courses: ['CS101'], acknowledgmentStatus: 'pending_review' },
   { id: 'F010', name: 'Dr. Thomas Wright', department: 'Mathematics', title: 'Professor', courses: ['MATH301', 'MATH401'], acknowledgmentStatus: 'pending_review' },
-  { id: 'F011', name: 'Dr. Amanda Clark', department: 'Physics', title: 'Associate Professor', courses: ['PHYS101', 'PHYS201'], acknowledgmentStatus: 'acknowledged', acknowledgedAt: '2026-03-14T16:20:00Z', acknowledgedBy: 'F011' },
+  { id: 'F011', name: 'Dr. Amanda Clark', department: 'Physics', title: 'Associate Professor', courses: ['PHYS101', 'PHYS201'], acknowledgmentStatus: 'pending_review' },
 ];
 
 const PROGRAMS_SEED: Program[] = [
@@ -48,7 +41,6 @@ const PROGRAMS_SEED: Program[] = [
 ];
 
 const SUBJECTS_SEED: Subject[] = [
-  // Computer Science subjects
   { id: 'CS101', code: 'CS101', name: 'Introduction to Programming', programId: 'BSCS', facultyId: 'F001' },
   { id: 'CS150', code: 'CS150', name: 'Digital Logic Design', programId: 'BSCS', facultyId: 'F006' },
   { id: 'CS201', code: 'CS201', name: 'Data Structures', programId: 'BSCS', facultyId: 'F001' },
@@ -56,16 +48,12 @@ const SUBJECTS_SEED: Subject[] = [
   { id: 'CS301', code: 'CS301', name: 'Algorithms', programId: 'BSCS', facultyId: 'F001' },
   { id: 'CS350', code: 'CS350', name: 'Software Engineering', programId: 'BSCS', facultyId: 'F002' },
   { id: 'CS401', code: 'CS401', name: 'Database Systems', programId: 'BSCS', facultyId: 'F002' },
-  
-  // Mathematics subjects
   { id: 'MATH101', code: 'MATH101', name: 'Calculus I', programId: 'BSMATH', facultyId: 'F003' },
   { id: 'MATH150', code: 'MATH150', name: 'Discrete Mathematics', programId: 'BSMATH', facultyId: 'F007' },
   { id: 'MATH201', code: 'MATH201', name: 'Calculus II', programId: 'BSMATH', facultyId: 'F003' },
   { id: 'MATH250', code: 'MATH250', name: 'Linear Algebra', programId: 'BSMATH', facultyId: 'F007' },
   { id: 'MATH301', code: 'MATH301', name: 'Differential Equations', programId: 'BSMATH', facultyId: 'F004' },
   { id: 'MATH401', code: 'MATH401', name: 'Advanced Calculus', programId: 'BSMATH', facultyId: 'F010' },
-  
-  // Physics subjects
   { id: 'PHYS101', code: 'PHYS101', name: 'General Physics I', programId: 'BSPHYS', facultyId: 'F005' },
   { id: 'PHYS201', code: 'PHYS201', name: 'Modern Physics', programId: 'BSPHYS', facultyId: 'F008' },
   { id: 'PHYS301', code: 'PHYS301', name: 'Quantum Mechanics', programId: 'BSPHYS', facultyId: 'F005' },
@@ -119,7 +107,6 @@ const CRITERIA_SEED: Criterion[] = [
   { id: 'crit-professionalism', name: 'Professionalism', order: 4 },
 ];
 
-// Deterministic rating generator for consistent seed data
 function createDeterministicRatings(baseRatings: Record<string, number>): Record<string, number> {
   return { ...baseRatings };
 }
@@ -139,219 +126,39 @@ function generateSeedEvaluations(): Evaluation[] {
     'Very passionate about the subject matter.',
   ];
 
-  // F001 - Dr. Sarah Chen - High performer (14 subs, avg ~4.5)
-  // Consistent high ratings across all criteria
-  const f001BaseRatings: Record<string, number> = {
-    'sq-teaching-1': 5, 'sq-teaching-2': 5, 'sq-teaching-3': 5,
-    'sq-mastery-1': 5, 'sq-mastery-2': 5, 'sq-mastery-3': 4,
-    'sq-punctuality-1': 5, 'sq-punctuality-2': 5, 'sq-punctuality-3': 5,
-    'sq-professionalism-1': 5, 'sq-professionalism-2': 5, 'sq-professionalism-3': 5,
-  };
-  for (let i = 0; i < 14; i++) {
-    const ratings = createDeterministicRatings(f001BaseRatings);
-    // Add slight variation for realism
-    if (i % 3 === 0) { ratings['sq-mastery-3'] = 4; ratings['sq-punctuality-2'] = 4; }
-    evals.push({ id: uuidv4(), facultyId: 'F001', courseId: FACULTY_SEED[0].courses[i % 3], cycleId: 'cyc-001', ratings, feedback: feedbacks[i % feedbacks.length], submittedAt: new Date(2026, 2, 5 + i).toISOString() });
-  }
+  // Generate evaluations for all faculty
+  const facultyEvals = [
+    { id: 'F001', count: 14, base: { 'sq-teaching-1': 5, 'sq-teaching-2': 5, 'sq-teaching-3': 5, 'sq-mastery-1': 5, 'sq-mastery-2': 5, 'sq-mastery-3': 4, 'sq-punctuality-1': 5, 'sq-punctuality-2': 5, 'sq-punctuality-3': 5, 'sq-professionalism-1': 5, 'sq-professionalism-2': 5, 'sq-professionalism-3': 5 } },
+    { id: 'F002', count: 12, base: { 'sq-teaching-1': 4, 'sq-teaching-2': 4, 'sq-teaching-3': 4, 'sq-mastery-1': 4, 'sq-mastery-2': 4, 'sq-mastery-3': 4, 'sq-punctuality-1': 2, 'sq-punctuality-2': 2, 'sq-punctuality-3': 3, 'sq-professionalism-1': 3, 'sq-professionalism-2': 3, 'sq-professionalism-3': 3 } },
+    { id: 'F003', count: 11, base: { 'sq-teaching-1': 2, 'sq-teaching-2': 2, 'sq-teaching-3': 1, 'sq-mastery-1': 3, 'sq-mastery-2': 3, 'sq-mastery-3': 2, 'sq-punctuality-1': 2, 'sq-punctuality-2': 3, 'sq-punctuality-3': 2, 'sq-professionalism-1': 1, 'sq-professionalism-2': 2, 'sq-professionalism-3': 1 } },
+    { id: 'F004', count: 10, base: { 'sq-teaching-1': 4, 'sq-teaching-2': 5, 'sq-teaching-3': 4, 'sq-mastery-1': 5, 'sq-mastery-2': 4, 'sq-mastery-3': 5, 'sq-punctuality-1': 4, 'sq-punctuality-2': 4, 'sq-punctuality-3': 5, 'sq-professionalism-1': 4, 'sq-professionalism-2': 4, 'sq-professionalism-3': 4 } },
+    { id: 'F005', count: 10, base: { 'sq-teaching-1': 4, 'sq-teaching-2': 3, 'sq-teaching-3': 4, 'sq-mastery-1': 3, 'sq-mastery-2': 3, 'sq-mastery-3': 3, 'sq-punctuality-1': 3, 'sq-punctuality-2': 3, 'sq-punctuality-3': 3, 'sq-professionalism-1': 2, 'sq-professionalism-2': 2, 'sq-professionalism-3': 1 } },
+    { id: 'F006', count: 13, base: { 'sq-teaching-1': 4, 'sq-teaching-2': 4, 'sq-teaching-3': 4, 'sq-mastery-1': 4, 'sq-mastery-2': 4, 'sq-mastery-3': 4, 'sq-punctuality-1': 4, 'sq-punctuality-2': 4, 'sq-punctuality-3': 4, 'sq-professionalism-1': 4, 'sq-professionalism-2': 4, 'sq-professionalism-3': 4 } },
+    { id: 'F007', count: 11, base: { 'sq-teaching-1': 4, 'sq-teaching-2': 3, 'sq-teaching-3': 4, 'sq-mastery-1': 3, 'sq-mastery-2': 4, 'sq-mastery-3': 3, 'sq-punctuality-1': 3, 'sq-punctuality-2': 4, 'sq-punctuality-3': 3, 'sq-professionalism-1': 4, 'sq-professionalism-2': 3, 'sq-professionalism-3': 4 } },
+    { id: 'F008', count: 10, base: { 'sq-teaching-1': 4, 'sq-teaching-2': 4, 'sq-teaching-3': 3, 'sq-mastery-1': 4, 'sq-mastery-2': 4, 'sq-mastery-3': 4, 'sq-punctuality-1': 4, 'sq-punctuality-2': 3, 'sq-punctuality-3': 4, 'sq-professionalism-1': 4, 'sq-professionalism-2': 4, 'sq-professionalism-3': 4 } },
+    { id: 'F009', count: 12, base: { 'sq-teaching-1': 5, 'sq-teaching-2': 5, 'sq-teaching-3': 5, 'sq-mastery-1': 5, 'sq-mastery-2': 4, 'sq-mastery-3': 5, 'sq-punctuality-1': 5, 'sq-punctuality-2': 5, 'sq-punctuality-3': 4, 'sq-professionalism-1': 5, 'sq-professionalism-2': 5, 'sq-professionalism-3': 5 } },
+    { id: 'F010', count: 11, base: { 'sq-teaching-1': 4, 'sq-teaching-2': 3, 'sq-teaching-3': 4, 'sq-mastery-1': 4, 'sq-mastery-2': 4, 'sq-mastery-3': 3, 'sq-punctuality-1': 3, 'sq-punctuality-2': 4, 'sq-punctuality-3': 3, 'sq-professionalism-1': 4, 'sq-professionalism-2': 4, 'sq-professionalism-3': 4 } },
+    { id: 'F011', count: 13, base: { 'sq-teaching-1': 5, 'sq-teaching-2': 4, 'sq-teaching-3': 5, 'sq-mastery-1': 5, 'sq-mastery-2': 5, 'sq-mastery-3': 4, 'sq-punctuality-1': 4, 'sq-punctuality-2': 5, 'sq-punctuality-3': 4, 'sq-professionalism-1': 5, 'sq-professionalism-2': 4, 'sq-professionalism-3': 5 } },
+  ];
 
-  // F002 - Dr. James Wilson - Mid performer with punctuality issues (12 subs, avg ~3.2)
-  // Good teaching and mastery, but poor punctuality
-  const f002BaseRatings: Record<string, number> = {
-    'sq-teaching-1': 4, 'sq-teaching-2': 4, 'sq-teaching-3': 4,
-    'sq-mastery-1': 4, 'sq-mastery-2': 4, 'sq-mastery-3': 4,
-    'sq-punctuality-1': 2, 'sq-punctuality-2': 2, 'sq-punctuality-3': 3, // Low punctuality scores
-    'sq-professionalism-1': 3, 'sq-professionalism-2': 3, 'sq-professionalism-3': 3,
-  };
-  for (let i = 0; i < 12; i++) {
-    const ratings = createDeterministicRatings(f002BaseRatings);
-    if (i % 4 === 0) { ratings['sq-teaching-3'] = 3; }
-    evals.push({ id: uuidv4(), facultyId: 'F002', courseId: FACULTY_SEED[1].courses[i % 2], cycleId: 'cyc-001', ratings, feedback: feedbacks[(i + 3) % feedbacks.length], submittedAt: new Date(2026, 2, 7 + i).toISOString() });
-  }
-
-  // F003 - Dr. Maria Garcia - Low performer (11 subs, avg ~2.3)
-  // Poor teaching and professionalism
-  const f003BaseRatings: Record<string, number> = {
-    'sq-teaching-1': 2, 'sq-teaching-2': 2, 'sq-teaching-3': 1, // Very low teaching
-    'sq-mastery-1': 3, 'sq-mastery-2': 3, 'sq-mastery-3': 2,
-    'sq-punctuality-1': 2, 'sq-punctuality-2': 3, 'sq-punctuality-3': 2,
-    'sq-professionalism-1': 1, 'sq-professionalism-2': 2, 'sq-professionalism-3': 1, // Very low professionalism
-  };
-  for (let i = 0; i < 11; i++) {
-    const ratings = createDeterministicRatings(f003BaseRatings);
-    if (i % 3 === 0) { ratings['sq-teaching-1'] = 1; ratings['sq-professionalism-2'] = 1; }
-    evals.push({ id: uuidv4(), facultyId: 'F003', courseId: FACULTY_SEED[2].courses[i % 2], cycleId: 'cyc-001', ratings, feedback: feedbacks[(i + 5) % feedbacks.length], submittedAt: new Date(2026, 2, 10 + i).toISOString() });
-  }
-
-  // F004 - Dr. Robert Kim - Good performer (10 subs, avg ~4.2)
-  const f004BaseRatings: Record<string, number> = {
-    'sq-teaching-1': 4, 'sq-teaching-2': 5, 'sq-teaching-3': 4,
-    'sq-mastery-1': 5, 'sq-mastery-2': 4, 'sq-mastery-3': 5,
-    'sq-punctuality-1': 4, 'sq-punctuality-2': 4, 'sq-punctuality-3': 5,
-    'sq-professionalism-1': 4, 'sq-professionalism-2': 4, 'sq-professionalism-3': 4,
-  };
-  for (let i = 0; i < 10; i++) {
-    const ratings = createDeterministicRatings(f004BaseRatings);
-    evals.push({ id: uuidv4(), facultyId: 'F004', courseId: 'MATH301', cycleId: 'cyc-001', ratings, feedback: feedbacks[(i + 7) % feedbacks.length], submittedAt: new Date(2026, 2, 12 + i).toISOString() });
-  }
-
-  // F005 - Dr. Emily Thompson - Professionalism issues (10 subs, avg ~3.0)
-  const f005BaseRatings: Record<string, number> = {
-    'sq-teaching-1': 4, 'sq-teaching-2': 3, 'sq-teaching-3': 4,
-    'sq-mastery-1': 3, 'sq-mastery-2': 3, 'sq-mastery-3': 3,
-    'sq-punctuality-1': 3, 'sq-punctuality-2': 3, 'sq-punctuality-3': 3,
-    'sq-professionalism-1': 2, 'sq-professionalism-2': 2, 'sq-professionalism-3': 1, // Very low professionalism
-  };
-  for (let i = 0; i < 10; i++) {
-    const ratings = createDeterministicRatings(f005BaseRatings);
-    evals.push({ id: uuidv4(), facultyId: 'F005', courseId: FACULTY_SEED[4].courses[i % 2], cycleId: 'cyc-001', ratings, feedback: feedbacks[(i + 9) % feedbacks.length], submittedAt: new Date(2026, 2, 15 + i).toISOString() });
-  }
-
-  // F006 - Dr. Michael Brown - Good performer (13 subs, avg ~4.0)
-  const f006BaseRatings: Record<string, number> = {
-    'sq-teaching-1': 4, 'sq-teaching-2': 4, 'sq-teaching-3': 4,
-    'sq-mastery-1': 4, 'sq-mastery-2': 4, 'sq-mastery-3': 4,
-    'sq-punctuality-1': 4, 'sq-punctuality-2': 4, 'sq-punctuality-3': 4,
-    'sq-professionalism-1': 4, 'sq-professionalism-2': 4, 'sq-professionalism-3': 4,
-  };
-  for (let i = 0; i < 13; i++) {
-    const ratings = createDeterministicRatings(f006BaseRatings);
-    if (i % 4 === 0) { ratings['sq-teaching-1'] = 3; ratings['sq-teaching-2'] = 3; }
-    evals.push({ id: uuidv4(), facultyId: 'F006', courseId: FACULTY_SEED[5].courses[i % 2], cycleId: 'cyc-001', ratings, feedback: feedbacks[i % feedbacks.length], submittedAt: new Date(2026, 2, 8 + i).toISOString() });
-  }
-
-  // F007 - Dr. Lisa Anderson - Mid performer (11 subs, avg ~3.5)
-  const f007BaseRatings: Record<string, number> = {
-    'sq-teaching-1': 4, 'sq-teaching-2': 3, 'sq-teaching-3': 4,
-    'sq-mastery-1': 3, 'sq-mastery-2': 4, 'sq-mastery-3': 3,
-    'sq-punctuality-1': 3, 'sq-punctuality-2': 4, 'sq-punctuality-3': 3,
-    'sq-professionalism-1': 4, 'sq-professionalism-2': 3, 'sq-professionalism-3': 4,
-  };
-  for (let i = 0; i < 11; i++) {
-    const ratings = createDeterministicRatings(f007BaseRatings);
-    evals.push({ id: uuidv4(), facultyId: 'F007', courseId: FACULTY_SEED[6].courses[i % 2], cycleId: 'cyc-001', ratings, feedback: feedbacks[(i + 1) % feedbacks.length], submittedAt: new Date(2026, 2, 10 + i).toISOString() });
-  }
-
-  // F008 - Dr. David Martinez - Good performer (10 subs, avg ~3.8)
-  const f008BaseRatings: Record<string, number> = {
-    'sq-teaching-1': 4, 'sq-teaching-2': 4, 'sq-teaching-3': 3,
-    'sq-mastery-1': 4, 'sq-mastery-2': 4, 'sq-mastery-3': 4,
-    'sq-punctuality-1': 4, 'sq-punctuality-2': 3, 'sq-punctuality-3': 4,
-    'sq-professionalism-1': 4, 'sq-professionalism-2': 4, 'sq-professionalism-3': 4,
-  };
-  for (let i = 0; i < 10; i++) {
-    const ratings = createDeterministicRatings(f008BaseRatings);
-    evals.push({ id: uuidv4(), facultyId: 'F008', courseId: 'PHYS201', cycleId: 'cyc-001', ratings, feedback: feedbacks[(i + 4) % feedbacks.length], submittedAt: new Date(2026, 2, 14 + i).toISOString() });
-  }
-
-  // F009 - Dr. Jennifer Lee - Excellent performer (12 subs, avg ~4.7)
-  const f009BaseRatings: Record<string, number> = {
-    'sq-teaching-1': 5, 'sq-teaching-2': 5, 'sq-teaching-3': 5,
-    'sq-mastery-1': 5, 'sq-mastery-2': 4, 'sq-mastery-3': 5,
-    'sq-punctuality-1': 5, 'sq-punctuality-2': 5, 'sq-punctuality-3': 4,
-    'sq-professionalism-1': 5, 'sq-professionalism-2': 5, 'sq-professionalism-3': 5,
-  };
-  for (let i = 0; i < 12; i++) {
-    const ratings = createDeterministicRatings(f009BaseRatings);
-    if (i % 5 === 0) { ratings['sq-mastery-2'] = 4; ratings['sq-punctuality-3'] = 4; }
-    evals.push({ id: uuidv4(), facultyId: 'F009', courseId: 'CS101', cycleId: 'cyc-001', ratings, feedback: feedbacks[i % feedbacks.length], submittedAt: new Date(2026, 2, 6 + i).toISOString() });
-  }
-
-  // F010 - Dr. Thomas Wright - Mid performer (11 subs, avg ~3.6)
-  const f010BaseRatings: Record<string, number> = {
-    'sq-teaching-1': 4, 'sq-teaching-2': 3, 'sq-teaching-3': 4,
-    'sq-mastery-1': 4, 'sq-mastery-2': 4, 'sq-mastery-3': 3,
-    'sq-punctuality-1': 3, 'sq-punctuality-2': 4, 'sq-punctuality-3': 3,
-    'sq-professionalism-1': 4, 'sq-professionalism-2': 4, 'sq-professionalism-3': 4,
-  };
-  for (let i = 0; i < 11; i++) {
-    const ratings = createDeterministicRatings(f010BaseRatings);
-    evals.push({ id: uuidv4(), facultyId: 'F010', courseId: FACULTY_SEED[9].courses[i % 2], cycleId: 'cyc-001', ratings, feedback: feedbacks[(i + 2) % feedbacks.length], submittedAt: new Date(2026, 2, 11 + i).toISOString() });
-  }
-
-  // F011 - Dr. Amanda Clark - High performer (13 subs, avg ~4.4)
-  const f011BaseRatings: Record<string, number> = {
-    'sq-teaching-1': 5, 'sq-teaching-2': 4, 'sq-teaching-3': 5,
-    'sq-mastery-1': 5, 'sq-mastery-2': 5, 'sq-mastery-3': 4,
-    'sq-punctuality-1': 4, 'sq-punctuality-2': 5, 'sq-punctuality-3': 4,
-    'sq-professionalism-1': 5, 'sq-professionalism-2': 4, 'sq-professionalism-3': 5,
-  };
-  for (let i = 0; i < 13; i++) {
-    const ratings = createDeterministicRatings(f011BaseRatings);
-    if (i % 4 === 0) { ratings['sq-punctuality-1'] = 3; ratings['sq-professionalism-2'] = 4; }
-    evals.push({ id: uuidv4(), facultyId: 'F011', courseId: FACULTY_SEED[10].courses[i % 2], cycleId: 'cyc-001', ratings, feedback: feedbacks[(i + 1) % feedbacks.length], submittedAt: new Date(2026, 2, 9 + i).toISOString() });
-  }
-
-  // Completed cycle (cyc-003) - 12 evaluations
-  for (let i = 0; i < 12; i++) {
-    const facultyIdx = i % 8;
-    const baseRatings: Record<string, number> = {
-      'sq-teaching-1': 4, 'sq-teaching-2': 3, 'sq-teaching-3': 4,
-      'sq-mastery-1': 3, 'sq-mastery-2': 4, 'sq-mastery-3': 3,
-      'sq-punctuality-1': 4, 'sq-punctuality-2': 3, 'sq-punctuality-3': 4,
-      'sq-professionalism-1': 3, 'sq-professionalism-2': 4, 'sq-professionalism-3': 3,
-    };
-    const ratings = createDeterministicRatings(baseRatings);
-    evals.push({ id: uuidv4(), facultyId: FACULTY_SEED[facultyIdx].id, courseId: FACULTY_SEED[facultyIdx].courses[0], cycleId: 'cyc-003', ratings, feedback: feedbacks[i % feedbacks.length], submittedAt: new Date(2025, 11, 5 + i).toISOString() });
-  }
-
-  // Archived cycle (cyc-004) - 10 evaluations
-  for (let i = 0; i < 10; i++) {
-    const facultyIdx = i % 8;
-    const baseRatings: Record<string, number> = {
-      'sq-teaching-1': 3, 'sq-teaching-2': 4, 'sq-teaching-3': 3,
-      'sq-mastery-1': 4, 'sq-mastery-2': 3, 'sq-mastery-3': 4,
-      'sq-punctuality-1': 3, 'sq-punctuality-2': 4, 'sq-punctuality-3': 3,
-      'sq-professionalism-1': 4, 'sq-professionalism-2': 3, 'sq-professionalism-3': 4,
-    };
-    const ratings = createDeterministicRatings(baseRatings);
-    evals.push({ id: uuidv4(), facultyId: FACULTY_SEED[facultyIdx].id, courseId: FACULTY_SEED[facultyIdx].courses[0], cycleId: 'cyc-004', ratings, feedback: feedbacks[(i + 2) % feedbacks.length], submittedAt: new Date(2025, 9, 5 + i).toISOString() });
-  }
-
-  return evals;
-}
-
-function generateTrainingRecommendation(facultyName: string, lowCriteria: { name: string; avg: number }[], subQuestionData: { criterionName: string; subQuestions: { text: string; avg: number }[] }[]): string {
-  if (lowCriteria.length === 0) return 'No areas below benchmark identified. Continue current teaching practices.';
-  const recommendations: string[] = [];
-  const sorted = [...lowCriteria].sort((a, b) => a.avg - b.avg);
-  sorted.forEach(({ name, avg }) => {
-    const score = avg.toFixed(2);
-    const critData = subQuestionData.find(c => c.criterionName === name);
-    const lowSQs = critData?.subQuestions.filter(sq => sq.avg < BENCHMARK) || [];
-    switch (name.toLowerCase()) {
-      case 'teaching style':
-        const ta: string[] = [];
-        if (lowSQs.some(sq => sq.text.includes('effective and engaging'))) ta.push('• Incorporate active learning techniques such as group discussions and problem-solving activities');
-        if (lowSQs.some(sq => sq.text.includes('clear and organized'))) ta.push('• Provide structured outlines and visual aids to organize lecture content');
-        if (lowSQs.some(sq => sq.text.includes('active participation'))) ta.push('• Use questioning techniques and interactive exercises to engage students');
-        recommendations.push(`**Teaching Style (${score}/5)**\nStudents report that teaching methods need improvement to enhance engagement and clarity.\n\nRecommended actions:\n${ta.join('\n')}\n\nWhy this matters: Effective teaching methods directly impact student learning outcomes and satisfaction.`);
-        break;
-      case 'mastery of subject':
-        const ma: string[] = [];
-        if (lowSQs.some(sq => sq.text.includes('deep knowledge'))) ma.push('• Review and update course materials to reflect current developments in the field');
-        if (lowSQs.some(sq => sq.text.includes('answers questions'))) ma.push('• Prepare thoroughly for each class and anticipate common student questions');
-        if (lowSQs.some(sq => sq.text.includes('real-world applications'))) ma.push('• Include more case studies and practical examples to demonstrate subject relevance');
-        recommendations.push(`**Mastery of Subject (${score}/5)**\nStudents perceive gaps in subject matter expertise or difficulty connecting theory to practice.\n\nRecommended actions:\n${ma.join('\n')}\n\nWhy this matters: Strong subject mastery builds student confidence and enhances learning.`);
-        break;
-      case 'punctuality':
-        const pu: string[] = [];
-        if (lowSQs.some(sq => sq.text.includes('starts and ends'))) pu.push('• Create detailed lesson plans with time allocations for each segment');
-        if (lowSQs.some(sq => sq.text.includes('returns graded'))) pu.push('• Establish a consistent grading timeline and communicate it to students');
-        if (lowSQs.some(sq => sq.text.includes('office hours'))) pu.push('• Maintain regular office hours and consider offering virtual alternatives');
-        recommendations.push(`**Punctuality (${score}/5)**\nStudents report issues with timeliness in class scheduling, feedback, and availability.\n\nRecommended actions:\n${pu.join('\n')}\n\nWhy this matters: Punctuality demonstrates respect for students' time and supports their academic success.`);
-        break;
-      case 'professionalism':
-        const pr: string[] = [];
-        if (lowSQs.some(sq => sq.text.includes('respectful and professional'))) pr.push('• Review communication guidelines and ensure consistent, respectful interactions');
-        if (lowSQs.some(sq => sq.text.includes('fairness and integrity'))) pr.push('• Apply policies consistently and transparently across all students');
-        if (lowSQs.some(sq => sq.text.includes('commitment to student'))) pr.push('• Increase availability for student support and demonstrate investment in their success');
-        recommendations.push(`**Professionalism (${score}/5)**\nStudents report concerns about professional conduct, fairness, or commitment to student success.\n\nRecommended actions:\n${pr.join('\n')}\n\nWhy this matters: Professionalism builds trust and creates a positive learning environment.`);
-        break;
-      default:
-        recommendations.push(`**${name} (${score}/5)**\nThis area scored below benchmark. Review sub-question feedback to identify patterns.`);
+  facultyEvals.forEach(({ id, count, base }) => {
+    const faculty = FACULTY_SEED.find(f => f.id === id);
+    if (!faculty) return;
+    for (let i = 0; i < count; i++) {
+      const ratings = createDeterministicRatings(base);
+      evals.push({
+        id: uuidv4(),
+        facultyId: id,
+        courseId: faculty.courses[i % faculty.courses.length],
+        cycleId: 'cyc-001',
+        ratings,
+        feedback: feedbacks[i % feedbacks.length],
+        submittedAt: new Date(2026, 2, 5 + i).toISOString(),
+      });
     }
   });
-  return `**Survey Analysis for ${facultyName}**\n\nThe following areas scored below the ${BENCHMARK}/5 benchmark. Actions are prioritized by severity.\n\n${recommendations.join('\n\n---\n\n')}`;
+
+  return evals;
 }
 
 class DataStore {
@@ -371,19 +178,32 @@ class DataStore {
   private trainingRecommendations: TrainingRecommendation[] = [];
   private disputes: Dispute[] = [];
   private users: User[] = [
+    // Admin accounts
     { id: 'admin', username: 'admin', password: 'admin', role: 'admin', displayName: 'System Administrator' },
+    { id: 'test_admin', username: 'test_admin', password: 'test123', role: 'admin', displayName: 'TEST Administrator' },
+    
+    // Faculty accounts
     { id: 'faculty', username: 'faculty', password: 'faculty', role: 'faculty', displayName: 'Dr. Sarah Chen', facultyId: 'F001', department: 'Computer Science' },
     { id: 'faculty2', username: 'faculty2', password: 'faculty2', role: 'faculty', displayName: 'Dr. Jennifer Lee', facultyId: 'F009', department: 'Computer Science' },
     { id: 'faculty3', username: 'faculty3', password: 'faculty3', role: 'faculty', displayName: 'Dr. Thomas Wright', facultyId: 'F010', department: 'Mathematics' },
     { id: 'faculty4', username: 'faculty4', password: 'faculty4', role: 'faculty', displayName: 'Dr. Amanda Clark', facultyId: 'F011', department: 'Physics' },
+    { id: 'test_faculty', username: 'test_faculty', password: 'test123', role: 'faculty', displayName: 'TEST Faculty', facultyId: 'F001', department: 'Computer Science' },
+    
+    // Dean accounts
     { id: 'dean_cs', username: 'M001', password: 'dean123', role: 'dean', displayName: 'Dr. Patricia Moore', department: 'Computer Science' },
     { id: 'dean_math', username: 'M002', password: 'dean123', role: 'dean', displayName: 'Dr. William Chang', department: 'Mathematics' },
     { id: 'dean_phys', username: 'M003', password: 'dean123', role: 'dean', displayName: 'Dr. Elizabeth Brown', department: 'Physics' },
+    { id: 'test_dean', username: 'test_dean', password: 'test123', role: 'dean', displayName: 'TEST Dean', department: 'Computer Science' },
+    
+    // Student accounts
     ...STUDENTS_SEED.map(s => ({ id: s.id, username: s.id, password: 'pass123', role: 'student' as const, displayName: s.name })),
+    { id: 'test_student', username: 'test_student', password: 'test123', role: 'student', displayName: 'TEST Student' },
+    
+    // Dev account
+    { id: 'dev', username: 'dev', password: '123dev', role: 'admin', displayName: 'Developer' },
   ];
 
   constructor() {
-    // Try to load persisted data
     const persistedData = loadFromLocalStorage();
     if (persistedData) {
       this.faculty = persistedData.faculty || this.faculty;
@@ -397,22 +217,6 @@ class DataStore {
       this.trainingRecommendations = persistedData.trainingRecommendations || this.trainingRecommendations;
       this.disputes = persistedData.disputes || this.disputes;
       this.addAuditLog('system', 'data_restored', 'DataStore', 'Data restored from localStorage');
-      
-      // Demo: Reset some faculty acknowledgment statuses on refresh
-      // This allows users to see the full acknowledgment workflow
-      const facultyToReset = ['F002', 'F006', 'F009']; // Reset these faculty to pending_acknowledgment
-      facultyToReset.forEach(facultyId => {
-        const faculty = this.faculty.find(f => f.id === facultyId);
-        if (faculty && faculty.acknowledgmentStatus === 'acknowledged') {
-          faculty.acknowledgmentStatus = 'pending_acknowledgment';
-          faculty.acknowledgedAt = undefined;
-          faculty.acknowledgedBy = undefined;
-        }
-      });
-
-      // Demo: Reset student C24-025's evaluation session on refresh
-      // This allows the student to re-evaluate subjects on each refresh
-      this.studentSessionEvals.delete('C24-025');
     } else {
       this.addAuditLog('system', 'system_init', 'DataStore', `System initialized — Faculty: ${FACULTY_SEED.length}, Students: ${STUDENTS_SEED.length}, Deans: ${DEANS_SEED.length}, Cycles: ${CYCLES_SEED.length}, Criteria: ${CRITERIA_SEED.length}, Sub-Questions: ${SUB_QUESTIONS.length}, Seed Evaluations: ${this.evaluations.length}`);
     }
@@ -437,10 +241,10 @@ class DataStore {
     });
   }
 
-  subscribe(event: EventType, cb: () => void): () => void {
+  subscribe(event: EventType, callback: () => void): () => void {
     if (!this.listeners.has(event)) this.listeners.set(event, new Set());
-    this.listeners.get(event)!.add(cb);
-    return () => this.listeners.get(event)?.delete(cb);
+    this.listeners.get(event)!.add(callback);
+    return () => this.listeners.get(event)?.delete(callback);
   }
 
   emit(event: EventType): void {
@@ -450,7 +254,7 @@ class DataStore {
   async authenticate(username: string, password: string): Promise<User | null> {
     await this.simulateLatency();
     const user = this.users.find(u => u.username === username && u.password === password);
-    if (user) this.addAuditLog(`user:${user.role}:${user.id}`, 'login', user.displayName, `Role: ${user.role}, Department: ${user.department || 'N/A'}`);
+    if (user) this.addAuditLog(`user:${user.role}:${user.id}`, 'login', user.displayName, `Role: ${user.role}`);
     else this.addAuditLog('user:unknown', 'login_failed', username, `Failed login attempt`);
     return user || null;
   }
@@ -472,19 +276,21 @@ class DataStore {
     return faculty ? [...faculty.courses] : [];
   }
 
-  async acknowledgeFaculty(facultyId: string, verifiedBy: string): Promise<void> {
+  async acknowledgeFaculty(facultyId: string, verifiedBy: string, signature?: string): Promise<void> {
     await this.simulateLatency();
     const f = this.faculty.find(fc => fc.id === facultyId);
-    if (f) { f.acknowledgmentStatus = 'acknowledged'; f.acknowledgedAt = new Date().toISOString(); f.acknowledgedBy = verifiedBy; }
-    this.addAuditLog(`faculty:${facultyId}`, 'acknowledgment', facultyId, `Faculty acknowledged report. Verified by: ${verifiedBy}`);
+    if (f) { 
+      f.acknowledgmentStatus = 'acknowledged'; 
+      f.acknowledgedAt = new Date().toISOString(); 
+      f.acknowledgedBy = verifiedBy;
+      if (signature) f.signature = signature;
+    }
+    this.addAuditLog(`faculty:${facultyId}`, 'acknowledgment', facultyId, `Faculty acknowledged report with e-signature. Verified by: ${verifiedBy}`);
     this.persistData();
     this.emit('acknowledgment_changed');
   }
 
-  // Dispute Management
   getDisputes(): Dispute[] { return [...this.disputes]; }
-  getDisputesForFaculty(facultyId: string): Dispute[] { return this.disputes.filter(d => d.facultyId === facultyId); }
-  getDisputeById(disputeId: string): Dispute | undefined { return this.disputes.find(d => d.id === disputeId); }
   getPendingDisputes(): Dispute[] { return this.disputes.filter(d => d.status === 'pending'); }
 
   async submitDispute(facultyId: string, cycleId: string, justification: string): Promise<Dispute> {
@@ -505,7 +311,7 @@ class DataStore {
     faculty.acknowledgmentStatus = 'disputed';
     faculty.disputeId = dispute.id;
     
-    this.addAuditLog(`faculty:${facultyId}`, 'dispute_submitted', facultyId, `Dispute submitted for cycle ${cycleId}. Justification: ${justification.substring(0, 100)}...`);
+    this.addAuditLog(`faculty:${facultyId}`, 'dispute_submitted', facultyId, `Dispute submitted`);
     this.persistData();
     this.emit('dispute_submitted');
     this.emit('acknowledgment_changed');
@@ -513,7 +319,7 @@ class DataStore {
     return dispute;
   }
 
-  async resolveDispute(disputeId: string, resolvedBy: string, resolution: string, adjustedScores?: Record<string, number>, redactedFeedback?: string[]): Promise<void> {
+  async resolveDispute(disputeId: string, resolvedBy: string, resolution: string): Promise<void> {
     await this.simulateLatency();
     const dispute = this.disputes.find(d => d.id === disputeId);
     if (!dispute) throw new Error('Dispute not found');
@@ -522,8 +328,6 @@ class DataStore {
     dispute.resolvedAt = new Date().toISOString();
     dispute.resolvedBy = resolvedBy;
     dispute.resolution = resolution;
-    if (adjustedScores) dispute.adjustedScores = adjustedScores;
-    if (redactedFeedback) dispute.redactedFeedback = redactedFeedback;
     
     const faculty = this.getFacultyById(dispute.facultyId);
     if (faculty) {
@@ -531,7 +335,7 @@ class DataStore {
       faculty.disputeId = undefined;
     }
     
-    this.addAuditLog(`admin:${resolvedBy}`, 'dispute_resolved', disputeId, `Dispute resolved by ${resolvedBy}. Resolution: ${resolution.substring(0, 100)}...`);
+    this.addAuditLog(`admin:${resolvedBy}`, 'dispute_resolved', disputeId, `Dispute resolved`);
     this.persistData();
     this.emit('dispute_resolved');
     this.emit('acknowledgment_changed');
@@ -553,7 +357,7 @@ class DataStore {
       faculty.disputeId = undefined;
     }
     
-    this.addAuditLog(`admin:${resolvedBy}`, 'dispute_dismissed', disputeId, `Dispute dismissed by ${resolvedBy}. Reason: ${reason}`);
+    this.addAuditLog(`admin:${resolvedBy}`, 'dispute_dismissed', disputeId, `Dispute dismissed`);
     this.persistData();
     this.emit('dispute_resolved');
     this.emit('acknowledgment_changed');
@@ -565,7 +369,7 @@ class DataStore {
     if (!faculty) throw new Error('Faculty not found');
     
     faculty.lastReminderSent = new Date().toISOString();
-    this.addAuditLog('admin', 'reminder_sent', facultyId, `Acknowledgment reminder sent to ${faculty.name}`);
+    this.addAuditLog('admin', 'reminder_sent', facultyId, `Reminder sent to ${faculty.name}`);
     this.persistData();
     this.emit('acknowledgment_changed');
   }
@@ -583,16 +387,15 @@ class DataStore {
     const metrics = this.getFacultyMetrics(facultyId, effectiveCycleId);
     const criteria = this.getCriteria();
     const lowCriteria = criteria.map(c => ({ name: c.name, avg: metrics.criteriaAverages[c.id] || 0 })).filter(c => c.avg < BENCHMARK && c.avg > 0);
-    const subQuestionData = lowCriteria.map(crit => {
-      const criterion = criteria.find(c => c.name === crit.name);
-      const sqs = criterion ? this.getSubQuestionsForCriterion(criterion.id) : [];
-      return { criterionName: crit.name, subQuestions: sqs.map(sq => ({ text: sq.text, avg: metrics.subQuestionAverages[sq.id] || 0 })) };
-    });
-    const recommendation = generateTrainingRecommendation(faculty.name, lowCriteria, subQuestionData);
+    
+    const recommendation = lowCriteria.length > 0
+      ? `Based on evaluation data, the following areas scored below the ${BENCHMARK}/5.0 benchmark:\n\n${lowCriteria.map(c => `- ${c.name}: ${c.avg.toFixed(2)}/5.0`).join('\n')}\n\nRecommended actions:\n- Schedule a meeting with department head\n- Consider peer observation sessions\n- Review teaching materials and methods`
+      : 'No areas below benchmark identified. Continue current teaching practices.';
+
     this.trainingRecommendations = this.trainingRecommendations.filter(r => !(r.facultyId === facultyId && r.cycleId === effectiveCycleId));
     const newRec: TrainingRecommendation = { id: uuidv4(), facultyId, cycleId: effectiveCycleId, recommendation, generatedAt: new Date().toISOString(), editedByAdmin: false };
     this.trainingRecommendations.push(newRec);
-    this.addAuditLog('admin:ai', 'tna_generated', facultyId, `AI-generated TNA for "${faculty.name}". Low criteria: ${lowCriteria.map(c => `${c.name}(${c.avg.toFixed(2)})`).join(', ') || 'none'}`);
+    this.addAuditLog('admin:ai', 'tna_generated', facultyId, `TNA generated for ${faculty.name}`);
     this.persistData();
     this.emit('training_changed');
     return newRec;
@@ -618,7 +421,7 @@ class DataStore {
     await this.simulateLatency();
     const newCycle = { ...cycle, id: `cyc-${uuidv4().slice(0, 8)}` };
     this.cycles.push(newCycle);
-    this.addAuditLog('admin', 'cycle_created', newCycle.id, `Created "${newCycle.displayName}". Dates: ${newCycle.startDate} to ${newCycle.endDate}`);
+    this.addAuditLog('admin', 'cycle_created', newCycle.id, `Created "${newCycle.displayName}"`);
     this.persistData();
     this.emit('cycle_changed');
     return newCycle;
@@ -630,7 +433,7 @@ class DataStore {
     this.cycles.forEach(c => { if (c.status === 'active') c.status = 'archived'; });
     const cycle = this.cycles.find(c => c.id === cycleId);
     if (cycle) cycle.status = 'active';
-    this.addAuditLog('admin', 'cycle_activated', cycleId, `Activated "${cycle?.displayName}". Previous: "${prev?.displayName || 'none'}"`);
+    this.addAuditLog('admin', 'cycle_activated', cycleId, `Activated "${cycle?.displayName}"`);
     this.persistData();
     this.emit('cycle_changed');
   }
@@ -640,6 +443,15 @@ class DataStore {
     const cycle = this.cycles.find(c => c.id === cycleId);
     if (cycle) cycle.status = 'archived';
     this.addAuditLog('admin', 'cycle_archived', cycleId, `Archived "${cycle?.displayName}"`);
+    this.persistData();
+    this.emit('cycle_changed');
+  }
+
+  async unarchiveCycle(cycleId: string): Promise<void> {
+    await this.simulateLatency();
+    const cycle = this.cycles.find(c => c.id === cycleId);
+    if (cycle) cycle.status = 'completed';
+    this.addAuditLog('admin', 'cycle_unarchived', cycleId, `Unarchived "${cycle?.displayName}" to completed status`);
     this.persistData();
     this.emit('cycle_changed');
   }
@@ -710,33 +522,15 @@ class DataStore {
     const oldText = sq.text;
     const crit = this.criteria.find(c => c.id === sq.criterionId);
     sq.text = newText;
-    this.addAuditLog('admin', 'subquestion_edited', sqId, `Edited sub-question in "${crit?.name}": "${oldText}" → "${newText}"`);
+    this.addAuditLog('admin', 'subquestion_edited', sqId, `Edited in "${crit?.name}": "${oldText}" → "${newText}"`);
     this.persistData();
     this.emit('criteria_changed');
   }
 
-  getEvaluations(): Evaluation[] { return [...this.evaluations]; }
-  getEvaluationsForFaculty(facultyId: string, cycleId?: string, courseId?: string): Evaluation[] {
-    return this.evaluations.filter(e => e.facultyId === facultyId && (!cycleId || e.cycleId === cycleId) && (!courseId || e.courseId === courseId));
-  }
-  getEvaluationsForDepartment(dept: string, cycleId?: string): Evaluation[] {
-    const facultyIds = this.faculty.filter(f => f.department === dept).map(f => f.id);
-    return this.evaluations.filter(e => facultyIds.includes(e.facultyId) && (!cycleId || e.cycleId === cycleId));
-  }
-
-  // Programs and Subjects methods
-  getPrograms(): Program[] {
-    return [...this.programs];
-  }
-
-  getSubjectsByProgram(programId: string): Subject[] {
-    return this.subjects.filter(s => s.programId === programId);
-  }
-
-  getSubjectById(subjectId: string): Subject | undefined {
-    return this.subjects.find(s => s.id === subjectId);
-  }
-
+  getPrograms(): Program[] { return [...this.programs]; }
+  getSubjects(): Subject[] { return [...this.subjects]; }
+  getSubjectsByProgram(programId: string): Subject[] { return this.subjects.filter(s => s.programId === programId); }
+  getSubjectById(subjectId: string): Subject | undefined { return this.subjects.find(s => s.id === subjectId); }
   getFacultyBySubject(subjectId: string): Faculty | undefined {
     const subject = this.getSubjectById(subjectId);
     if (!subject) return undefined;
@@ -756,21 +550,6 @@ class DataStore {
       .filter((s): s is Subject => s !== undefined);
   }
 
-  // Legacy method for backward compatibility
-  isCourseEvaluatedByStudent(studentId: string, courseId: string): boolean {
-    return this.studentSessionEvals.get(studentId)?.has(courseId) || false;
-  }
-
-  getAvailableCoursesForStudent(studentId: string): Array<{ courseId: string; facultyId: string; facultyName: string }> {
-    const student = this.students.find(s => s.id === studentId);
-    if (!student) return [];
-    return student.enrolledSubjects.filter(subjectId => !this.isSubjectEvaluatedByStudent(studentId, subjectId)).map(subjectId => {
-      const subject = this.getSubjectById(subjectId);
-      const fac = subject ? this.faculty.find(f => f.id === subject.facultyId) : undefined;
-      return { courseId: subjectId, facultyId: fac?.id || '', facultyName: fac?.name || 'Unknown' };
-    });
-  }
-
   async submitEvaluation(evalData: Omit<Evaluation, 'id' | 'submittedAt'>, studentId?: string): Promise<Evaluation> {
     await this.simulateLatency();
     const evaluation: Evaluation = { ...evalData, id: uuidv4(), submittedAt: new Date().toISOString() };
@@ -787,6 +566,15 @@ class DataStore {
     this.persistData();
     this.emit('submission_added');
     return evaluation;
+  }
+
+  getEvaluations(): Evaluation[] { return [...this.evaluations]; }
+  getEvaluationsForFaculty(facultyId: string, cycleId?: string, courseId?: string): Evaluation[] {
+    return this.evaluations.filter(e => e.facultyId === facultyId && (!cycleId || e.cycleId === cycleId) && (!courseId || e.courseId === courseId));
+  }
+  getEvaluationsForDepartment(dept: string, cycleId?: string): Evaluation[] {
+    const facultyIds = this.faculty.filter(f => f.department === dept).map(f => f.id);
+    return this.evaluations.filter(e => facultyIds.includes(e.facultyId) && (!cycleId || e.cycleId === cycleId));
   }
 
   getFacultyMetrics(facultyId: string, cycleId?: string, courseId?: string): FacultyMetrics {
@@ -819,7 +607,7 @@ class DataStore {
     criteria.forEach(c => {
       const critSQs = subQuestions.filter(sq => sq.criterionId === c.id);
       if (critSQs.length === 0) { critAvgs[c.id] = 0; return; }
-      critAvgs[c.id] = critSQs.reduce((s, sq) => s + (sqAvgs[sq.id] || 0), 0) / critSQs.length;
+      critAvgs[c.id] = critSQs.reduce((sum, sq) => sum + (sqAvgs[sq.id] || 0), 0) / critSQs.length;
     });
 
     const overallAvg = evals.length > 0 ? evals.reduce((sum, ev) => { const vals = Object.values(ev.ratings); return sum + vals.reduce((a, b) => a + b, 0) / vals.length; }, 0) / evals.length : 0;
@@ -865,7 +653,179 @@ class DataStore {
   getStudentById(id: string): Student | undefined { return this.students.find(s => s.id === id); }
   getDeans(): Dean[] { return [...this.deans]; }
 
-  // Data management methods
+  // Account Creation Methods
+  async createFacultyAccount(
+    name: string,
+    department: string,
+    title: string,
+    courses: string[],
+    username: string,
+    password: string
+  ): Promise<{ success: boolean; message: string; facultyId?: string }> {
+    await this.simulateLatency();
+    
+    // Check if username already exists
+    if (this.users.find(u => u.username === username)) {
+      return { success: false, message: 'Username already exists' };
+    }
+
+    // Generate new faculty ID
+    const facultyId = `F${String(this.faculty.length + 1).padStart(3, '0')}`;
+    
+    // Create faculty record
+    const newFaculty: Faculty = {
+      id: facultyId,
+      name,
+      department,
+      title,
+      courses,
+      acknowledgmentStatus: 'pending_review'
+    };
+    
+    this.faculty.push(newFaculty);
+    
+    // Create user account
+    const newUser: User = {
+      id: username,
+      username,
+      password,
+      role: 'faculty',
+      displayName: name,
+      facultyId,
+      department
+    };
+    
+    this.users.push(newUser);
+    
+    this.addAuditLog('admin', 'faculty_created', facultyId, `Created faculty account: ${name} (${username})`);
+    this.persistData();
+    this.emit('data_refresh');
+    
+    return { success: true, message: 'Faculty account created successfully', facultyId };
+  }
+
+  async createStudentAccount(
+    name: string,
+    studentId: string,
+    programId: string,
+    enrolledSubjects: string[],
+    username: string,
+    password: string
+  ): Promise<{ success: boolean; message: string }> {
+    await this.simulateLatency();
+    
+    // Check if username already exists
+    if (this.users.find(u => u.username === username)) {
+      return { success: false, message: 'Username already exists' };
+    }
+
+    // Check if student ID already exists
+    if (this.students.find(s => s.id === studentId)) {
+      return { success: false, message: 'Student ID already exists' };
+    }
+    
+    // Create student record
+    const newStudent: Student = {
+      id: studentId,
+      name,
+      programId,
+      enrolledSubjects
+    };
+    
+    this.students.push(newStudent);
+    
+    // Create user account
+    const newUser: User = {
+      id: username,
+      username,
+      password,
+      role: 'student',
+      displayName: name
+    };
+    
+    this.users.push(newUser);
+    
+    this.addAuditLog('admin', 'student_created', studentId, `Created student account: ${name} (${username})`);
+    this.persistData();
+    this.emit('data_refresh');
+    
+    return { success: true, message: 'Student account created successfully' };
+  }
+
+  async createDeanAccount(
+    name: string,
+    department: string,
+    username: string,
+    password: string
+  ): Promise<{ success: boolean; message: string; deanId?: string }> {
+    await this.simulateLatency();
+    
+    // Check if username already exists
+    if (this.users.find(u => u.username === username)) {
+      return { success: false, message: 'Username already exists' };
+    }
+
+    // Generate new dean ID
+    const deanId = `M${String(this.deans.length + 1).padStart(3, '0')}`;
+    
+    // Create dean record
+    const newDean: Dean = {
+      id: deanId,
+      name,
+      department
+    };
+    
+    this.deans.push(newDean);
+    
+    // Create user account
+    const newUser: User = {
+      id: username,
+      username,
+      password,
+      role: 'dean',
+      displayName: name,
+      department
+    };
+    
+    this.users.push(newUser);
+    
+    this.addAuditLog('admin', 'dean_created', deanId, `Created dean account: ${name} (${username})`);
+    this.persistData();
+    this.emit('data_refresh');
+    
+    return { success: true, message: 'Dean account created successfully', deanId };
+  }
+
+  async createAdminAccount(
+    name: string,
+    username: string,
+    password: string
+  ): Promise<{ success: boolean; message: string }> {
+    await this.simulateLatency();
+    
+    // Check if username already exists
+    if (this.users.find(u => u.username === username)) {
+      return { success: false, message: 'Username already exists' };
+    }
+    
+    // Create user account
+    const newUser: User = {
+      id: username,
+      username,
+      password,
+      role: 'admin',
+      displayName: name
+    };
+    
+    this.users.push(newUser);
+    
+    this.addAuditLog('admin', 'admin_created', username, `Created admin account: ${name} (${username})`);
+    this.persistData();
+    this.emit('data_refresh');
+    
+    return { success: true, message: 'Admin account created successfully' };
+  }
+
   resetData(): void {
     this.faculty = JSON.parse(JSON.stringify(FACULTY_SEED));
     this.students = [...STUDENTS_SEED];
@@ -873,6 +833,8 @@ class DataStore {
     this.cycles = JSON.parse(JSON.stringify(CYCLES_SEED));
     this.criteria = [...CRITERIA_SEED];
     this.subQuestions = [...SUB_QUESTIONS];
+    this.programs = [...PROGRAMS_SEED];
+    this.subjects = [...SUBJECTS_SEED];
     this.evaluations = generateSeedEvaluations();
     this.auditLog = [];
     this.trainingRecommendations = [];
@@ -908,7 +870,8 @@ class DataStore {
     if (data.evaluations) this.evaluations = data.evaluations;
     if (data.auditLog) this.auditLog = data.auditLog;
     if (data.trainingRecommendations) this.trainingRecommendations = data.trainingRecommendations;
-    this.addAuditLog('admin', 'data_imported', 'DataStore', 'Data imported from external source');
+    if (data.disputes) this.disputes = data.disputes;
+    this.addAuditLog('admin', 'data_imported', 'DataStore', 'Data imported');
     this.persistData();
     this.emit('data_refresh');
   }
